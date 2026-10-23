@@ -1,18 +1,63 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { Stack, usePathname, router } from 'expo-router';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { auth } from '../../firebaseConfig';
+import { colors } from '@/constants/rentify-theme';
 
-SplashScreen.preventAutoHideAsync();
+export default function RootLayout() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authResolved, setAuthResolved] = useState(false);
+  const pathname = usePathname();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  useEffect(() => {
+    return onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthResolved(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!authResolved) return;
+    if (user && pathname === '/') {
+      router.replace('/(tabs)/home');
+    } else if (!user && pathname !== '/') {
+      router.replace('/');
+    }
+  }, [authResolved, pathname, user]);
+
+  if (!authResolved || (user && pathname === '/') || (!user && pathname !== '/')) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.surface },
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontWeight: '700' },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="item/[id]" options={{ title: 'Item details' }} />
+      <Stack.Screen name="booking/[itemId]" options={{ title: 'Book item' }} />
+    </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
