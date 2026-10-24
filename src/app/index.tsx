@@ -9,11 +9,14 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import type { Href } from 'expo-router';
 import {
   createUserWithEmailAndPassword,
+  signOut,
   signInWithEmailAndPassword,
+  type User,
 } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 
 import { auth, db } from '../../firebaseConfig';
@@ -63,6 +66,7 @@ export default function AuthScreen() {
 
     setLoading(true);
     try {
+      let signedInUser: User;
       if (isRegistering) {
         const credential = await createUserWithEmailAndPassword(
           auth,
@@ -74,10 +78,26 @@ export default function AuthScreen() {
           role,
           createdAt: serverTimestamp(),
         });
+        signedInUser = credential.user;
       } else {
-        await signInWithEmailAndPassword(auth, normalizedEmail, password);
+        const credential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+        signedInUser = credential.user;
       }
-      router.replace('/(tabs)/home');
+      const profile = await getDoc(doc(db, 'users', signedInUser.uid));
+      const savedRole = profile.data()?.role;
+      if (savedRole !== 'customer' && savedRole !== 'shop') {
+        await signOut(auth);
+        Alert.alert(
+          'Account setup incomplete',
+          'Your account role is missing. Contact the shop administrator for help.',
+        );
+        return;
+      }
+      router.replace(
+        (savedRole === 'customer'
+          ? '/(tabs)/(customer)/browse'
+          : '/(tabs)/(shop)/home') as Href,
+      );
     } catch (error) {
       Alert.alert(
         isRegistering ? 'Account could not be created' : 'Sign in failed',

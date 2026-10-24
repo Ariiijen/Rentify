@@ -9,10 +9,11 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import type { Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, onSnapshot } from 'firebase/firestore';
 
-import { db } from '../../../firebaseConfig';
+import { db } from '../../../../firebaseConfig';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
@@ -82,7 +83,7 @@ export default function HomeScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Add a rental item"
-              onPress={() => router.push('/(tabs)/add-item')}
+              onPress={() => router.push('/(tabs)/(shop)/add-item' as Href)}
               style={styles.addButton}
             >
               <Ionicons name="add" size={25} color="#FFFFFF" />

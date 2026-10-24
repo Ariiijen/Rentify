@@ -8,11 +8,12 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import type { Href } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
-import { db } from '../../../firebaseConfig';
+import { auth, db } from '../../../../firebaseConfig';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
@@ -22,6 +23,8 @@ import { colors } from '@/constants/rentify-theme';
 export default function AddItemScreen() {
   const [name, setName] = useState('');
   const [type, setType] = useState('');
+  const [size, setSize] = useState('');
+  const [color, setColor] = useState('');
   const [price, setPrice] = useState('');
   const [deposit, setDeposit] = useState('');
   const [previewUri, setPreviewUri] = useState<string | null>(null);
@@ -55,6 +58,10 @@ export default function AddItemScreen() {
   const saveItem = async () => {
     const parsedPrice = Number(price);
     const parsedDeposit = Number(deposit);
+    const sizes = size
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
 
     if (!name.trim() || !type.trim() || price.trim() === '' || deposit.trim() === '') {
       Alert.alert('Complete the form', 'Enter a name, type, rental price, and deposit.');
@@ -72,16 +79,25 @@ export default function AddItemScreen() {
 
     setSaving(true);
     try {
+      const user = auth.currentUser;
+      if (!user) {
+        Alert.alert('Sign in required', 'Sign in as a shop to list rental items.');
+        return;
+      }
       await addDoc(collection(db, 'items'), {
+        shopId: user.uid,
         name: name.trim(),
         type: type.trim(),
+        size: sizes[0] ?? '',
+        sizes,
+        color: color.trim(),
         price: parsedPrice,
         deposit: parsedDeposit,
         photoUrl: '',
         status: 'available',
         createdAt: serverTimestamp(),
       });
-      router.replace('/(tabs)/home');
+      router.replace('/(tabs)/(shop)/home' as Href);
     } catch (error) {
       console.error('Could not save rental item:', error);
       Alert.alert('Item not saved', 'We could not add this item. Please try again.');
@@ -111,8 +127,23 @@ export default function AddItemScreen() {
             label="Type"
             value={type}
             onChangeText={setType}
-            placeholder="e.g. Dresses, Jackets, Accessories"
+            placeholder="e.g. Gown, Barong, Filipiniana"
             maxLength={50}
+          />
+          <TextField
+            label="Available sizes"
+            value={size}
+            onChangeText={setSize}
+            placeholder="e.g. S, M, L (separate with commas)"
+            autoCapitalize="characters"
+            maxLength={40}
+          />
+          <TextField
+            label="Color"
+            value={color}
+            onChangeText={setColor}
+            placeholder="e.g. Navy blue"
+            maxLength={35}
           />
           <View style={styles.amountRow}>
             <TextField

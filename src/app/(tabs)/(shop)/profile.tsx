@@ -10,7 +10,7 @@ import { signOut } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 
-import { auth, db } from '../../../firebaseConfig';
+import { auth, db } from '../../../../firebaseConfig';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';

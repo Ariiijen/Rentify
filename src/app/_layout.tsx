@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack, usePathname, router } from 'expo-router';
+import type { Href } from 'expo-router';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 
 import { auth } from '../../firebaseConfig';
@@ -21,7 +22,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (!authResolved) return;
     if (user && pathname === '/') {
-      router.replace('/(tabs)/home');
+      router.replace('/(tabs)/(customer)/browse' as Href);
     } else if (!user && pathname !== '/') {
       router.replace('/');
     }
