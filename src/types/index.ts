@@ -7,7 +7,8 @@ export type ItemStatus =
   | 'reserved'
   | 'booked'
   | 'pickedUp'
-  | 'cleaning';
+  | 'cleaning'
+  | 'repair';
 
 export interface Item {
   id: string;
@@ -24,7 +25,13 @@ export interface Item {
   createdAt?: Timestamp;
 }
 
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
+export type BookingStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'pickedUp'
+  | 'returned'
+  | 'cancelled'
+  | 'ongoing';
 
 export interface Booking {
   id: string;
@@ -35,8 +42,16 @@ export interface Booking {
   total?: number;
   startDate: string;
   endDate: string;
-  status: BookingStatus | 'ongoing' | 'returned';
+  customerName?: string;
+  lateFee?: number;
+  damageFee?: number;
+  status: BookingStatus;
   createdAt?: Timestamp;
+}
+
+export interface ShopPolicies {
+  lateFeePerDay: number;
+  depositPolicy: string;
 }
 
 export interface CartItem {

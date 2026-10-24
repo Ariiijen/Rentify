@@ -22,18 +22,14 @@ import type { CartItem, Item, ItemStatus, UserRole } from '@/types';
 
 const statuses: ItemStatus[] = [
   'available',
-  'reserved',
-  'booked',
-  'pickedUp',
   'cleaning',
+  'repair',
 ];
 
-const statusLabels: Record<ItemStatus, string> = {
+const statusLabels: Partial<Record<ItemStatus, string>> = {
   available: 'Available',
-  reserved: 'Reserved',
-  booked: 'Booked',
-  pickedUp: 'Picked up',
   cleaning: 'Cleaning',
+  repair: 'Repair',
 };
 
 const sizeGuides = [
@@ -108,6 +104,7 @@ export default function ItemDetailScreen() {
     if (item?.size) return [item.size];
     return ['S', 'M', 'L', 'XL'];
   }, [item]);
+  const isOwner = role === 'shop' && item?.shopId === user?.uid;
 
   const addToCart = async () => {
     if (!user || !item) {
@@ -163,7 +160,7 @@ export default function ItemDetailScreen() {
   };
 
   const updateStatus = async (status: ItemStatus) => {
-    if (!id) return;
+    if (!id || !isOwner) return;
     setUpdating(true);
     try {
       await setDoc(doc(db, 'items', id), { status }, { merge: true });
@@ -291,15 +288,24 @@ export default function ItemDetailScreen() {
               style={styles.primaryAction}
             />
           </>
-        ) : (
+        ) : isOwner ? (
           <>
             <Text style={styles.sectionTitle}>Rental status</Text>
             <Text style={styles.statusHint}>Update availability for your customers.</Text>
+            <Button
+              title="Edit Item"
+              icon="create-outline"
+              variant="secondary"
+              onPress={() =>
+                router.push(`/shop/edit-item/${item.id}` as Href)
+              }
+              style={styles.primaryAction}
+            />
             <View style={styles.statusGrid}>
               {statuses.map((status) => (
                 <Button
                   key={status}
-                  title={statusLabels[status]}
+                  title={statusLabels[status] ?? status}
                   variant={status === item.status ? 'primary' : 'secondary'}
                   disabled={updating}
                   onPress={() => updateStatus(status)}
@@ -308,6 +314,10 @@ export default function ItemDetailScreen() {
               ))}
             </View>
           </>
+        ) : (
+          <Card style={styles.reviewsCard}>
+            <Text style={styles.guideNote}>Shop owners can manage only items in their inventory.</Text>
+          </Card>
         )}
       </ScrollView>
     </Screen>

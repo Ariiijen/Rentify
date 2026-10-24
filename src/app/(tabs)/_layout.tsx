@@ -50,7 +50,7 @@ export default function RoleTabsLayout() {
     return <Redirect href={'/(tabs)/(customer)/browse' as Href} />;
   }
   if (role === 'shop' && !isShopPath) {
-    return <Redirect href={'/(tabs)/(shop)/home' as Href} />;
+    return <Redirect href={'/(tabs)/(shop)/dashboard' as Href} />;
   }
   if (!role) {
     return (

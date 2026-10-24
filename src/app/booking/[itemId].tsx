@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   ScrollView,
   StyleSheet,
   Text,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { addDoc, collection, getDocs, query, serverTimestamp, where } from 'firebase/firestore';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import type { Href } from 'expo-router';
+import { addDoc, collection, doc, getDocs, onSnapshot, query, serverTimestamp, where } from 'firebase/firestore';
 
 import { auth, db } from '../../../firebaseConfig';
 import { Button } from '@/components/ui/Button';
@@ -27,8 +28,32 @@ export default function BookingScreen() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [saving, setSaving] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+    return onSnapshot(
+      doc(db, 'users', user.uid),
+      (snapshot) => {
+        const accountRole = snapshot.data()?.role;
+        setRole(typeof accountRole === 'string' ? accountRole : null);
+        setRoleLoading(false);
+      },
+      (error) => {
+        console.error('Could not verify booking access:', error);
+        setRoleLoading(false);
+        Alert.alert('Booking unavailable', 'We could not verify your account role.');
+      },
+    );
+  }, []);
 
   const requestBooking = async () => {
+    if (role !== 'customer') {
+      Alert.alert('Customer account required', 'Only customers can request bookings.');
+      return;
+    }
     if (!itemId) {
       Alert.alert('Booking unavailable', 'This rental item could not be identified.');
       return;
@@ -87,6 +112,24 @@ export default function BookingScreen() {
     }
   };
 
+  if (roleLoading) {
+    return (
+      <Screen style={styles.centered}>
+        <Text style={styles.note}>Loading account…</Text>
+      </Screen>
+    );
+  }
+  if (role === 'shop') {
+    return <Redirect href={'/(tabs)/(shop)/dashboard' as Href} />;
+  }
+  if (role !== 'customer') {
+    return (
+      <Screen style={styles.centered}>
+        <Text style={styles.note}>A customer account is required to request a booking.</Text>
+      </Screen>
+    );
+  }
+
   return (
     <Screen style={styles.screen}>
       <ScrollView
@@ -131,6 +174,10 @@ export default function BookingScreen() {
 const styles = StyleSheet.create({
   screen: {
     paddingHorizontal: 18,
+  },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     paddingTop: 26,

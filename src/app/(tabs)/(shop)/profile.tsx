@@ -2,74 +2,94 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { signOut } from 'firebase/auth';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 
 import { auth, db } from '../../../../firebaseConfig';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
+import { TextField } from '@/components/ui/TextField';
 import { colors } from '@/constants/rentify-theme';
-import type { UserRole } from '@/types';
 
-export default function ProfileScreen() {
+export default function ShopProfileScreen() {
   const user = auth.currentUser;
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [shopName, setShopName] = useState('');
+  const [lateFeePerDay, setLateFeePerDay] = useState('');
+  const [depositPolicy, setDepositPolicy] = useState('');
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-
-    let active = true;
-    const profileRef = doc(db, 'users', user.uid);
-
-    void getDoc(doc(db, 'users', user.uid))
-      .then((snapshot) => {
-        if (!active) return;
-        const profileRole = snapshot.data()?.role;
-        setRole(profileRole === 'shop' || profileRole === 'customer' ? profileRole : null);
-        setLoading(false);
-      })
-      .catch((error: unknown) => {
-        console.error('Could not read user role:', error);
-        if (active) {
-          setLoading(false);
-          Alert.alert('Profile unavailable', 'We could not load your account role.');
-        }
-      });
-
-    const unsubscribe = onSnapshot(
-      profileRef,
+    return onSnapshot(
+      doc(db, 'users', user.uid),
       (snapshot) => {
-        const profileRole = snapshot.data()?.role;
-        setRole(profileRole === 'shop' || profileRole === 'customer' ? profileRole : null);
+        const data = snapshot.data();
+        const policies = data?.policies;
+        setShopName(typeof data?.shopName === 'string' ? data.shopName : '');
+        setLateFeePerDay(
+          policies && typeof policies.lateFeePerDay === 'number'
+            ? String(policies.lateFeePerDay)
+            : '',
+        );
+        setDepositPolicy(
+          policies && typeof policies.depositPolicy === 'string'
+            ? policies.depositPolicy
+            : '',
+        );
         setLoading(false);
       },
       (error) => {
-        console.error('Could not load user profile:', error);
+        console.error('Could not load shop profile:', error);
         setLoading(false);
-        Alert.alert('Profile unavailable', 'We could not load your profile details.');
+        Alert.alert('Profile unavailable', 'We could not load your shop details.');
       },
     );
-
-    return () => {
-      active = false;
-      unsubscribe();
-    };
   }, [user]);
 
-  const handleSignOut = async () => {
+  const savePolicies = async () => {
+    if (!user) return;
+    const fee = lateFeePerDay.trim() ? Number(lateFeePerDay) : 0;
+    if (!Number.isFinite(fee) || fee < 0) {
+      Alert.alert('Check late fee', 'Enter a valid non-negative amount.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          shopName: shopName.trim(),
+          policies: {
+            lateFeePerDay: fee,
+            depositPolicy: depositPolicy.trim(),
+          },
+        },
+        { merge: true },
+      );
+      Alert.alert('Policies saved', 'Your shop information has been updated.');
+    } catch (error) {
+      console.error('Could not save shop policies:', error);
+      Alert.alert('Policies not saved', 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const logout = async () => {
     setSigningOut(true);
     try {
       await signOut(auth);
     } catch (error) {
-      console.error('Could not sign out:', error);
+      console.error('Could not sign out shop owner:', error);
       Alert.alert('Sign out failed', 'Please try again.');
       setSigningOut(false);
     }
@@ -77,97 +97,85 @@ export default function ProfileScreen() {
 
   return (
     <Screen style={styles.screen}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Your profile</Text>
-        <Text style={styles.subtitle}>Manage your Rentify account.</Text>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View>
+          <Text style={styles.eyebrow}>SHOP SETTINGS</Text>
+          <Text style={styles.title}>Profile</Text>
+          <Text style={styles.subtitle}>Manage your shop and rental policies.</Text>
+        </View>
 
-        <Card style={styles.profileCard}>
+        <Card style={styles.accountCard}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={32} color={colors.primary} />
+            <Ionicons name="storefront-outline" size={28} color={colors.primary} />
           </View>
-          <Text style={styles.accountHeading}>Account details</Text>
-          <View style={styles.divider} />
-          <Text style={styles.label}>EMAIL</Text>
-          <Text style={styles.value}>{user?.email ?? 'Not available'}</Text>
-          <Text style={[styles.label, styles.roleLabel]}>ACCOUNT TYPE</Text>
-          {loading ? (
-            <ActivityIndicator color={colors.primary} style={styles.roleLoading} />
-          ) : (
-            <Text style={styles.value}>
-              {role ? role.charAt(0).toUpperCase() + role.slice(1) : 'Not set'}
-            </Text>
-          )}
+          <View style={styles.accountInfo}>
+            <Text style={styles.accountLabel}>SHOP OWNER</Text>
+            <Text style={styles.accountEmail}>{user?.email ?? 'Email unavailable'}</Text>
+          </View>
+        </Card>
+
+        <Card style={styles.form}>
+          <Text style={styles.sectionTitle}>Shop information</Text>
+          <TextField
+            label="Shop name"
+            value={shopName}
+            onChangeText={setShopName}
+            placeholder="Your shop name"
+            maxLength={70}
+          />
+          <Text style={styles.sectionTitle}>Rental policies</Text>
+          <TextField
+            label="Late fee per day (₱)"
+            value={lateFeePerDay}
+            onChangeText={setLateFeePerDay}
+            placeholder="200"
+            keyboardType="decimal-pad"
+          />
+          <TextField
+            label="Deposit policy"
+            value={depositPolicy}
+            onChangeText={setDepositPolicy}
+            placeholder="Explain when deposits are refunded"
+            multiline
+            textAlignVertical="top"
+            style={styles.policyInput}
+          />
+          {loading ? <ActivityIndicator color={colors.primary} /> : null}
+          <Button title="Save shop details" loading={saving} onPress={savePolicies} />
         </Card>
 
         <Button
-          title="Sign out"
+          title="Log out"
           variant="secondary"
           icon="log-out-outline"
           loading={signingOut}
-          onPress={handleSignOut}
+          onPress={logout}
         />
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    paddingHorizontal: 18,
-  },
-  content: {
-    paddingTop: 26,
-    gap: 8,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 27,
-    fontWeight: '800',
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 14,
-    marginBottom: 15,
-  },
-  profileCard: {
-    marginBottom: 12,
-  },
+  screen: { paddingHorizontal: 17 },
+  content: { paddingTop: 21, paddingBottom: 25, gap: 13 },
+  eyebrow: { color: colors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  title: { color: colors.text, fontSize: 27, fontWeight: '800', marginTop: 4 },
+  subtitle: { color: colors.muted, fontSize: 13, marginTop: 4 },
+  accountCard: { flexDirection: 'row', alignItems: 'center', padding: 14 },
   avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     backgroundColor: colors.lavender,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginRight: 12,
   },
-  accountHeading: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginVertical: 17,
-  },
-  label: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  value: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 6,
-  },
-  roleLabel: {
-    marginTop: 19,
-  },
-  roleLoading: {
-    alignSelf: 'flex-start',
-    marginTop: 9,
-  },
+  accountInfo: { flex: 1, gap: 5 },
+  accountLabel: { color: colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 0.7 },
+  accountEmail: { color: colors.text, fontSize: 13, fontWeight: '600' },
+  form: { gap: 15 },
+  sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  policyInput: { minHeight: 90, paddingTop: 12 },
 });

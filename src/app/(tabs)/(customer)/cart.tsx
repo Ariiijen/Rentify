@@ -182,6 +182,7 @@ export default function CartScreen() {
         batch.set(bookingRef, {
           userId: user.uid,
           shopId,
+          customerName: user.displayName || user.email || 'Customer',
           items: shopItems,
           total: shopSubtotal,
           startDate,

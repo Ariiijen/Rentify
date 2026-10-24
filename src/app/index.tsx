@@ -96,7 +96,7 @@ export default function AuthScreen() {
       router.replace(
         (savedRole === 'customer'
           ? '/(tabs)/(customer)/browse'
-          : '/(tabs)/(shop)/home') as Href,
+          : '/(tabs)/(shop)/dashboard') as Href,
       );
     } catch (error) {
       Alert.alert(
