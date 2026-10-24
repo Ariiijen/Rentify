@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -47,6 +48,7 @@ export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const user = auth.currentUser;
   const [item, setItem] = useState<Item | null>(null);
+  const [shopProfile, setShopProfile] = useState<{ shopId: string; name: string } | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [loading, setLoading] = useState(true);
@@ -99,12 +101,36 @@ export default function ItemDetailScreen() {
     );
   }, [user]);
 
+  useEffect(() => {
+    if (!item?.shopId) return;
+    const shopId = item.shopId;
+    return onSnapshot(
+      doc(db, 'users', shopId),
+      (snapshot) => {
+        const profile = snapshot.data();
+        setShopProfile({
+          shopId,
+          name:
+            typeof profile?.shopName === 'string' && profile.shopName.trim()
+              ? profile.shopName
+              : 'View shop',
+        });
+      },
+      (error) => {
+        console.error('Could not load item shop name:', error);
+        setShopProfile({ shopId, name: 'View shop' });
+      },
+    );
+  }, [item?.shopId]);
+
   const availableSizes = useMemo(() => {
     if (item?.sizes?.length) return item.sizes;
     if (item?.size) return [item.size];
     return ['S', 'M', 'L', 'XL'];
   }, [item]);
   const isOwner = role === 'shop' && item?.shopId === user?.uid;
+  const shopName =
+    item?.shopId && shopProfile?.shopId === item.shopId ? shopProfile.name : 'View shop';
 
   const addToCart = async () => {
     if (!user || !item) {
@@ -203,6 +229,23 @@ export default function ItemDetailScreen() {
         <Card style={styles.card}>
           <Text style={styles.type}>{item.type}</Text>
           <Text style={styles.name}>{item.name}</Text>
+          {role === 'customer' && item.shopId ? (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={`View ${shopName || 'shop'} profile`}
+              onPress={() =>
+                router.push({
+                  pathname: '/shop-profile/[id]',
+                  params: { id: item.shopId! },
+                })
+              }
+              style={styles.shopLink}
+            >
+              <Ionicons name="storefront-outline" size={16} color={colors.primary} />
+              <Text style={styles.shopLinkText}>{shopName || 'View shop'}</Text>
+              <Ionicons name="chevron-forward" size={15} color={colors.muted} />
+            </Pressable>
+          ) : null}
           {item.color ? <Text style={styles.detail}>Color: {item.color}</Text> : null}
           <View style={styles.metrics}>
             <View style={styles.metric}>
@@ -369,6 +412,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 5,
   },
+  shopLink: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    marginVertical: 3,
+  },
+  shopLinkText: { flex: 1, color: colors.primary, fontSize: 13, fontWeight: '700' },
   detail: {
     color: colors.muted,
     fontSize: 13,

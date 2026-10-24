@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { signOut, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, getDocFromServer, onSnapshot, setDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 
 import { auth, db } from '../../../../firebaseConfig';
@@ -27,10 +27,12 @@ interface Measurements {
 
 export default function CustomerProfileScreen() {
   const user = auth.currentUser;
+  const dirtyRef = useRef(false);
   const [address, setAddress] = useState('');
   const [measurements, setMeasurements] = useState<Measurements>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -39,6 +41,10 @@ export default function CustomerProfileScreen() {
     return onSnapshot(
       doc(db, 'users', user.uid),
       (snapshot) => {
+        if (dirtyRef.current) {
+          setLoading(false);
+          return;
+        }
         const data = snapshot.data();
         setAddress(typeof data?.address === 'string' ? data.address : '');
         const value = data?.measurements;
@@ -56,25 +62,60 @@ export default function CustomerProfileScreen() {
   }, [user]);
 
   const updateMeasurement = (key: keyof Measurements, value: string) => {
+    dirtyRef.current = true;
     setMeasurements((current) => ({ ...current, [key]: value }));
   };
 
+  const updateAddress = (value: string) => {
+    dirtyRef.current = true;
+    setAddress(value);
+  };
+
   const saveProfile = async () => {
-    if (!user) return;
+    if (!user) {
+      Alert.alert('Sign in required', 'Sign in again before saving your profile.');
+      return;
+    }
     setSaving(true);
     try {
       await setDoc(
         doc(db, 'users', user.uid),
         {
+          email: user.email ?? '',
+          role: 'customer',
           address: address.trim(),
           measurements,
         },
         { merge: true },
       );
+      const savedProfile = await getDocFromServer(doc(db, 'users', user.uid));
+      if (!savedProfile.exists()) {
+        throw new Error('The profile document was not found after saving.');
+      }
+      const savedData = savedProfile.data();
+      const savedMeasurements = savedData.measurements;
+      setAddress(typeof savedData.address === 'string' ? savedData.address : '');
+      setMeasurements(
+        savedMeasurements && typeof savedMeasurements === 'object'
+          ? (savedMeasurements as Measurements)
+          : {},
+      );
+      dirtyRef.current = false;
+      setIsEditing(false);
       Alert.alert('Profile saved', 'Your address and measurements were updated.');
     } catch (error) {
       console.error('Could not save customer profile:', error);
-      Alert.alert('Changes not saved', 'Please try again.');
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String(error.code)
+          : '';
+      const message =
+        code === 'permission-denied'
+          ? 'Firestore rejected this write. Check your Firestore rules allow signed-in users to update their own users/{uid} document.'
+          : code === 'unavailable'
+            ? 'Firestore is unavailable. Check your connection and try saving again.'
+            : 'We could not confirm the saved profile with Firestore. Your edits are still on this screen; please try again.';
+      Alert.alert('Changes not saved', message);
     } finally {
       setSaving(false);
     }
@@ -133,8 +174,9 @@ export default function CustomerProfileScreen() {
           <TextField
             label="Address"
             value={address}
-            onChangeText={setAddress}
+            onChangeText={updateAddress}
             placeholder="Street, city, postal code"
+            editable={isEditing && !loading && !saving}
             multiline
             textAlignVertical="top"
             style={styles.addressInput}
@@ -151,6 +193,7 @@ export default function CustomerProfileScreen() {
               onChangeText={(value) => updateMeasurement('bust', value)}
               placeholder="—"
               keyboardType="decimal-pad"
+              editable={isEditing && !loading && !saving}
               style={styles.measurementInput}
             />
             <TextField
@@ -159,6 +202,7 @@ export default function CustomerProfileScreen() {
               onChangeText={(value) => updateMeasurement('waist', value)}
               placeholder="—"
               keyboardType="decimal-pad"
+              editable={isEditing && !loading && !saving}
               style={styles.measurementInput}
             />
             <TextField
@@ -167,6 +211,7 @@ export default function CustomerProfileScreen() {
               onChangeText={(value) => updateMeasurement('hips', value)}
               placeholder="—"
               keyboardType="decimal-pad"
+              editable={isEditing && !loading && !saving}
               style={styles.measurementInput}
             />
             <TextField
@@ -175,10 +220,22 @@ export default function CustomerProfileScreen() {
               onChangeText={(value) => updateMeasurement('height', value)}
               placeholder="—"
               keyboardType="decimal-pad"
+              editable={isEditing && !loading && !saving}
               style={styles.measurementInput}
             />
           </View>
-          <Button title="Save profile" loading={saving} onPress={saveProfile} />
+          <Button
+            title={isEditing ? 'Save customer details' : 'Edit profile'}
+            loading={saving}
+            disabled={loading}
+            onPress={() => {
+              if (isEditing) {
+                void saveProfile();
+              } else {
+                setIsEditing(true);
+              }
+            }}
+          />
           {loading ? <ActivityIndicator color={colors.primary} /> : null}
         </Card>
 
