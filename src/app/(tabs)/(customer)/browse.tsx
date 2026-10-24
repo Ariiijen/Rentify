@@ -227,12 +227,14 @@ export default function BrowseScreen() {
                     />
                   </Pressable>
                 </View>
-                <Text style={styles.itemType} numberOfLines={1}>{item.type}</Text>
-                <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.price}>
-                  {formatMoney(item.price)}<Text style={styles.perDay}> / day</Text>
-                </Text>
-                <Text style={styles.deposit}>Deposit {formatMoney(item.deposit)}</Text>
+                <View style={styles.itemDetails}>
+                  <Text style={styles.itemType} numberOfLines={1}>{item.type}</Text>
+                  <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.price}>
+                    {formatMoney(item.price)}<Text style={styles.perDay}> / day</Text>
+                  </Text>
+                  <Text style={styles.deposit}>Deposit {formatMoney(item.deposit)}</Text>
+                </View>
               </Card>
             </Pressable>
           );
@@ -324,15 +326,16 @@ const styles = StyleSheet.create({
     marginBottom: 11,
   },
   itemCard: {
-    padding: 9,
-    height: 247,
+    padding: 0,
+    height: 250,
+    overflow: 'hidden',
   },
   photoWrap: {
-    height: 132,
-    borderRadius: 12,
+    height: 139,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
     overflow: 'hidden',
     backgroundColor: colors.lavender,
-    marginBottom: 10,
   },
   photo: {
     width: '100%',
@@ -342,6 +345,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.peach,
   },
   favorite: {
     position: 'absolute',
@@ -360,6 +364,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.6,
+  },
+  itemDetails: {
+    flex: 1,
+    padding: 9,
+    paddingTop: 8,
   },
   itemName: {
     color: colors.text,

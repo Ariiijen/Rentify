@@ -226,6 +226,7 @@ export default function ItemDetailScreen() {
           </View>
         )}
 
+        <View style={styles.detailsContent}>
         <Card style={styles.card}>
           <Text style={styles.type}>{item.type}</Text>
           <Text style={styles.name}>{item.name}</Text>
@@ -362,6 +363,7 @@ export default function ItemDetailScreen() {
             <Text style={styles.guideNote}>Shop owners can manage only items in their inventory.</Text>
           </Card>
         )}
+        </View>
       </ScrollView>
     </Screen>
   );
@@ -369,7 +371,7 @@ export default function ItemDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 0,
   },
   centered: {
     alignItems: 'center',
@@ -377,24 +379,24 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   content: {
-    paddingTop: 18,
     paddingBottom: 28,
+  },
+  detailsContent: {
+    paddingHorizontal: 18,
+    paddingTop: 16,
     gap: 8,
   },
   hero: {
-    height: 205,
-    borderRadius: 20,
+    width: '100%',
+    height: 400,
     backgroundColor: colors.lavender,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 7,
   },
   heroImage: {
     width: '100%',
-    height: 250,
-    borderRadius: 20,
+    height: 400,
     backgroundColor: colors.lavender,
-    marginBottom: 7,
   },
   card: {
     gap: 6,

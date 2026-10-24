@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { Stack, usePathname, router } from 'expo-router';
 import type { Href } from 'expo-router';
 import { onAuthStateChanged, type User } from 'firebase/auth';
@@ -10,6 +10,7 @@ import { colors } from '@/constants/rentify-theme';
 export default function RootLayout() {
   const [user, setUser] = useState<User | null>(null);
   const [authResolved, setAuthResolved] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -17,6 +18,11 @@ export default function RootLayout() {
       setUser(currentUser);
       setAuthResolved(true);
     });
+  }, []);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setIntroComplete(true), 1800);
+    return () => clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
@@ -28,10 +34,19 @@ export default function RootLayout() {
     }
   }, [authResolved, pathname, user]);
 
-  if (!authResolved || (user && pathname === '/') || (!user && pathname !== '/')) {
+  if (!authResolved || !introComplete || (user && pathname === '/') || (!user && pathname !== '/')) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.intro}>
+        <Image
+          source={require('../../assets/images/rentify-mark.png')}
+          resizeMode="contain"
+          style={styles.logo}
+        />
+        <Text style={styles.brand}>Rentify</Text>
+        <Text style={styles.tagline}>WARDROBE RENTALS, REIMAGINED</Text>
+        {!introComplete || !authResolved ? (
+          <ActivityIndicator size="small" color={colors.primary} style={styles.indicator} />
+        ) : null}
       </View>
     );
   }
@@ -57,10 +72,34 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  loading: {
+  intro: {
     flex: 1,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  logo: {
+    width: 210,
+    height: 235,
+    marginBottom: 12,
+  },
+  brand: {
+    color: colors.text,
+    fontFamily: 'serif',
+    fontSize: 38,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+  },
+  tagline: {
+    color: colors.primary,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginTop: 8,
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 54,
   },
 });

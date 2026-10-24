@@ -22,6 +22,7 @@ import { TextField } from '@/components/ui/TextField';
 import { colors } from '@/constants/rentify-theme';
 
 const categories = ['Gown', 'Barong', 'Filipiniana', 'Costume', 'Accessories', 'Other'];
+const MAX_FIRESTORE_PHOTO_BASE64_LENGTH = 700_000;
 
 export default function ShopAddItemScreen() {
   const [name, setName] = useState('');
@@ -31,25 +32,55 @@ export default function ShopAddItemScreen() {
   const [size, setSize] = useState('');
   const [color, setColor] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const choosePhoto = async () => {
+  const choosePhoto = async (source: 'library' | 'camera') => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('Photo access needed', 'Allow access to preview an item photo.');
-        return;
+      if (source === 'library') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert('Photo access needed', 'Allow photo library access to choose a gown photo.');
+          return;
+        }
+      } else {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert('Camera access needed', 'Allow camera access to take an item photo.');
+          return;
+        }
       }
-      const result = await ImagePicker.launchImageLibraryAsync({
+      const pickerOptions: ImagePicker.ImagePickerOptions = {
         mediaTypes: ['images'],
         allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets[0]) setPreview(result.assets[0].uri);
+        aspect: [1, 1],
+        quality: 0.45,
+        base64: true,
+      };
+      const result =
+        source === 'library'
+          ? await ImagePicker.launchImageLibraryAsync(pickerOptions)
+          : await ImagePicker.launchCameraAsync(pickerOptions);
+      if (result.canceled || !result.assets[0]) return;
+
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        Alert.alert('Photo unavailable', 'We could not encode this image. Try another photo.');
+        return;
+      }
+      if (asset.base64.length > MAX_FIRESTORE_PHOTO_BASE64_LENGTH) {
+        Alert.alert(
+          'Photo is too large',
+          'Choose a smaller or more tightly cropped image. Firestore documents have a size limit.',
+        );
+        return;
+      }
+      const mimeType = asset.mimeType || 'image/jpeg';
+      setPreview(asset.uri);
+      setPhotoUrl(`data:${mimeType};base64,${asset.base64}`);
     } catch (error) {
-      console.error('Could not open the photo library:', error);
-      Alert.alert('Photo unavailable', 'We could not open your photo library.');
+      console.error(`Could not select item photo from ${source}:`, error);
+      Alert.alert('Photo unavailable', 'We could not select an item photo.');
     }
   };
 
@@ -87,7 +118,7 @@ export default function ShopAddItemScreen() {
         size: sizes[0],
         sizes,
         color: color.trim(),
-        photoUrl: '',
+        photoUrl,
         status: 'available',
         createdAt: serverTimestamp(),
       });
@@ -107,6 +138,36 @@ export default function ShopAddItemScreen() {
         <Text style={styles.title}>Add new item</Text>
         <Text style={styles.subtitle}>Add a piece to your rental collection.</Text>
         <Card style={styles.form}>
+          <View style={styles.photoSection}>
+            <Text style={styles.label}>Gown photo</Text>
+            {preview ? (
+              <Image source={{ uri: preview }} style={styles.preview} resizeMode="cover" />
+            ) : (
+              <View style={styles.photoPlaceholder}>
+                <Ionicons name="camera-outline" size={31} color={colors.primary} />
+                <Text style={styles.photoText}>Add Gown Photo</Text>
+              </View>
+            )}
+            <View style={styles.photoActions}>
+              <Button
+                title="Gallery"
+                icon="images-outline"
+                variant="secondary"
+                onPress={() => void choosePhoto('library')}
+                style={styles.photoAction}
+              />
+              <Button
+                title="Camera"
+                icon="camera-outline"
+                variant="secondary"
+                onPress={() => void choosePhoto('camera')}
+                style={styles.photoAction}
+              />
+            </View>
+            <Text style={styles.photoNote}>
+              Development mode stores a compressed Base64 image in Firestore. Use hosted image URLs for production.
+            </Text>
+          </View>
           <TextField
             label="Item name"
             value={name}
@@ -164,24 +225,6 @@ export default function ShopAddItemScreen() {
             onChangeText={setColor}
             placeholder="e.g. Emerald green"
           />
-          <View style={styles.photoSection}>
-            <Text style={styles.label}>Item photo</Text>
-            {preview ? (
-              <Image source={{ uri: preview }} style={styles.preview} />
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <Ionicons name="image-outline" size={29} color={colors.primary} />
-                <Text style={styles.photoText}>Choose a photo to preview</Text>
-              </View>
-            )}
-            <Button
-              title={preview ? 'Choose another photo' : 'Choose photo'}
-              icon="images-outline"
-              variant="secondary"
-              onPress={choosePhoto}
-            />
-            <Text style={styles.photoNote}>Preview only; photo upload is not enabled yet.</Text>
-          </View>
           <Button title="Save item" loading={saving} onPress={save} />
         </Card>
       </ScrollView>
@@ -212,9 +255,12 @@ const styles = StyleSheet.create({
   amountRow: { flexDirection: 'row', gap: 11 },
   amountInput: { flex: 1 },
   photoSection: { gap: 10 },
+  photoActions: { flexDirection: 'row', gap: 9 },
+  photoAction: { flex: 1, minHeight: 44 },
   photoPlaceholder: {
-    height: 150,
-    borderRadius: 14,
+    aspectRatio: 1,
+    width: '100%',
+    borderRadius: 18,
     backgroundColor: colors.lavender,
     borderStyle: 'dashed',
     borderWidth: 1,
@@ -224,6 +270,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   photoText: { color: colors.muted, fontSize: 13 },
-  preview: { width: '100%', height: 190, borderRadius: 14, backgroundColor: colors.lavender },
-  photoNote: { color: colors.muted, fontSize: 11 },
+  preview: { width: '100%', aspectRatio: 1, borderRadius: 18, backgroundColor: colors.lavender },
+  photoNote: { color: colors.muted, fontSize: 10, lineHeight: 15 },
 });
