@@ -38,7 +38,7 @@ function getDisplayStatus(booking: Booking): BookingDisplayStatus {
 }
 
 function formatMoney(value: number) {
-  return `$${Number.isFinite(value) ? value.toFixed(2) : '0.00'}`;
+  return `₱${Number.isFinite(value) ? value.toFixed(2) : '0.00'}`;
 }
 
 function getBookingItems(booking: Booking) {
@@ -105,9 +105,9 @@ export default function BookingsScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>YOUR RENTALS</Text>
-            <Text style={styles.title}>Bookings</Text>
-            <Text style={styles.subtitle}>Track your requests and rental dates.</Text>
+            <Text style={styles.eyebrow}>RENTAL UPDATES</Text>
+            <Text style={styles.title}>Notifications</Text>
+            <Text style={styles.subtitle}>Track booking updates and rental history.</Text>
           </View>
         }
         ListEmptyComponent={

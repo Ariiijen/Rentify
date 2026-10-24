@@ -10,11 +10,20 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import {
+  arrayRemove,
+  arrayUnion,
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
 
-import { db } from '../../../../firebaseConfig';
+import { auth, db } from '../../../../firebaseConfig';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
@@ -25,12 +34,14 @@ import type { Item } from '@/types';
 const categories = ['All', 'Gown', 'Barong', 'Filipiniana', 'Costume', 'Accessories'];
 
 function formatMoney(value: number) {
-  return `$${Number.isFinite(value) ? value.toFixed(2) : '0.00'}`;
+  return `₱${Number.isFinite(value) ? value.toFixed(2) : '0.00'}`;
 }
 
 export default function BrowseScreen() {
+  const { category } = useLocalSearchParams<{ category?: string }>();
+  const user = auth.currentUser;
   const [items, setItems] = useState<Item[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState(category ?? 'All');
   const [search, setSearch] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(() => new Set());
   const [loading, setLoading] = useState(true);
@@ -58,6 +69,21 @@ export default function BrowseScreen() {
     );
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    return onSnapshot(
+      doc(db, 'users', user.uid),
+      (snapshot) => {
+        const saved = snapshot.data()?.wishlist;
+        setFavorites(new Set(Array.isArray(saved) ? saved.filter((id): id is string => typeof id === 'string') : []));
+      },
+      (error) => {
+        console.error('Could not load customer wishlist:', error);
+        Alert.alert('Wishlist unavailable', 'We could not load your saved rentals.');
+      },
+    );
+  }, [user]);
+
   const filteredItems = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return items.filter((item) => {
@@ -73,13 +99,20 @@ export default function BrowseScreen() {
     });
   }, [items, search, selectedCategory]);
 
-  const toggleFavorite = (id: string) => {
-    setFavorites((previous) => {
-      const next = new Set(previous);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const toggleFavorite = async (id: string) => {
+    if (!user) {
+      Alert.alert('Sign in required', 'Sign in to save rentals to your wishlist.');
+      return;
+    }
+    try {
+      const profileRef = doc(db, 'users', user.uid);
+      await updateDoc(profileRef, {
+        wishlist: favorites.has(id) ? arrayRemove(id) : arrayUnion(id),
+      });
+    } catch (error) {
+      console.error('Could not update customer wishlist:', error);
+      Alert.alert('Wishlist not updated', 'Please try saving this rental again.');
+    }
   };
 
   return (
@@ -183,7 +216,7 @@ export default function BrowseScreen() {
                     accessibilityLabel={favorite ? 'Remove favorite' : 'Add to favorites'}
                     onPress={(event) => {
                       event.stopPropagation();
-                      toggleFavorite(item.id);
+                      void toggleFavorite(item.id);
                     }}
                     style={styles.favorite}
                   >

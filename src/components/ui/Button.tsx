@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   secondary: {
     backgroundColor: colors.lavender,
     borderWidth: 1,
-    borderColor: '#DADDFC',
+    borderColor: colors.peach,
   },
   disabled: {
     opacity: 0.55,

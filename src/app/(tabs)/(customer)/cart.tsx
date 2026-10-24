@@ -38,7 +38,7 @@ function validDate(value: string) {
 }
 
 function formatMoney(value: number) {
-  return `$${value.toFixed(2)}`;
+  return `₱${value.toFixed(2)}`;
 }
 
 export default function CartScreen() {

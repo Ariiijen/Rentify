@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lavender,
     borderStyle: 'dashed',
     borderWidth: 1,
-    borderColor: '#D5D8F8',
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

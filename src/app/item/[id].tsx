@@ -41,7 +41,7 @@ const sizeGuides = [
 ];
 
 function money(value: number) {
-  return `$${Number.isFinite(value) ? value.toFixed(2) : '0.00'}`;
+  return `₱${Number.isFinite(value) ? value.toFixed(2) : '0.00'}`;
 }
 
 export default function ItemDetailScreen() {

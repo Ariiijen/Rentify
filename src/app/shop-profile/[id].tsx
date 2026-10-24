@@ -25,6 +25,7 @@ import {
 import { auth, db } from '../../../firebaseConfig';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Screen } from '@/components/ui/Screen';
+import { colors } from '@/constants/rentify-theme';
 import type { Booking, CartItem, Item, UserRole } from '@/types';
 
 type ShopProfile = {
@@ -43,7 +44,7 @@ type SortMode = 'Popular' | 'Latest' | 'Top Sales' | 'Price';
 
 const shopTabs: ShopTab[] = ['Shop', 'Products', 'Categories', 'Reviews'];
 const sortModes: SortMode[] = ['Popular', 'Latest', 'Top Sales', 'Price'];
-const accent = '#EE4D2D';
+const accent = colors.primary;
 
 function money(value: number) {
   return `₱${Number.isFinite(value) ? value.toFixed(0) : '0'}`;
@@ -281,13 +282,13 @@ export default function ShopProfileScreen() {
                   <Ionicons name="arrow-back" size={22} color="#FFF" />
                 </Pressable>
                 <View style={styles.searchBar}>
-                  <Ionicons name="search-outline" size={17} color="#747474" />
+                  <Ionicons name="search-outline" size={17} color={colors.muted} />
                   <TextInput
                     accessibilityLabel="Search in shop"
                     value={search}
                     onChangeText={setSearch}
                     placeholder="Search in shop"
-                    placeholderTextColor="#888"
+                    placeholderTextColor={colors.muted}
                     returnKeyType="search"
                     style={styles.searchInput}
                   />
@@ -400,7 +401,7 @@ export default function ShopProfileScreen() {
                       <Ionicons
                         name={priceAscending ? 'arrow-up' : 'arrow-down'}
                         size={12}
-                        color={active ? accent : '#656565'}
+                        color={active ? accent : colors.muted}
                       />
                     ) : null}
                   </Pressable>
@@ -491,9 +492,9 @@ export default function ShopProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { paddingHorizontal: 0, backgroundColor: '#FFFFFF' },
+  screen: { paddingHorizontal: 0, backgroundColor: colors.background },
   centered: { alignItems: 'center', justifyContent: 'center' },
-  listContent: { paddingBottom: 24, flexGrow: 1, backgroundColor: '#FFFFFF' },
+  listContent: { paddingBottom: 24, flexGrow: 1, backgroundColor: colors.background },
   cover: {
     minHeight: 268,
     justifyContent: 'space-between',
@@ -518,13 +519,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 38,
     borderRadius: 20,
-    backgroundColor: '#F3F3F3',
+    backgroundColor: colors.peach,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
   },
-  searchInput: { flex: 1, paddingVertical: 0, color: '#282828', fontSize: 13 },
+  searchInput: { flex: 1, paddingVertical: 0, color: colors.text, fontSize: 13 },
   shopInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 21 },
   avatar: {
     width: 58,
@@ -561,13 +562,13 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     backgroundColor: '#FFFFFF',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E8E8E8',
+    borderBottomColor: colors.border,
   },
-  stickyTabs: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#EEEEEE' },
+  stickyTabs: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   activeTab: { borderBottomColor: accent },
   tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  tabText: { color: '#545454', fontSize: 12, fontWeight: '600' },
+  tabText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   activeTabText: { color: accent, fontWeight: '800' },
   newBadge: { backgroundColor: '#E83D3D', borderRadius: 5, paddingHorizontal: 3, paddingVertical: 1 },
   newBadgeText: { color: '#FFFFFF', fontSize: 7, fontWeight: '900' },
@@ -577,9 +578,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     borderRadius: 18,
     justifyContent: 'center',
-    backgroundColor: '#F4F4F4',
+    backgroundColor: colors.peach,
   },
-  categoryText: { color: '#444444', fontSize: 12, fontWeight: '600' },
+  categoryText: { color: colors.text, fontSize: 12, fontWeight: '600' },
   filterBar: {
     height: 49,
     paddingHorizontal: 12,
@@ -592,14 +593,14 @@ const styles = StyleSheet.create({
     minHeight: 30,
     paddingHorizontal: 11,
     borderRadius: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.peach,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
   },
-  activeFilterChip: { backgroundColor: '#FFF0EC' },
-  filterText: { color: '#606060', fontSize: 11, fontWeight: '600' },
+  activeFilterChip: { backgroundColor: colors.peach },
+  filterText: { color: colors.muted, fontSize: 11, fontWeight: '600' },
   activeFilterText: { color: accent, fontWeight: '800' },
   gridRow: { paddingHorizontal: 9, gap: 9 },
   productWrap: { flex: 1, maxWidth: '50%', paddingBottom: 10 },
@@ -608,11 +609,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#EAEAEA',
+    borderColor: colors.border,
   },
-  productImageWrap: { height: 174, backgroundColor: '#F8F5F3' },
+  productImageWrap: { height: 174, backgroundColor: colors.background },
   productImage: { width: '100%', height: '100%' },
-  productFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F5F3' },
+  productFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   shopTag: {
     position: 'absolute',
     top: 8,
@@ -625,7 +626,7 @@ const styles = StyleSheet.create({
   },
   shopTagText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
   productDetails: { padding: 9, gap: 5 },
-  productTitle: { minHeight: 34, color: '#292929', fontSize: 12, lineHeight: 16, fontWeight: '600' },
+  productTitle: { minHeight: 34, color: colors.text, fontSize: 12, lineHeight: 16, fontWeight: '600' },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   price: { color: accent, fontSize: 17, fontWeight: '800' },
   discount: {
@@ -634,13 +635,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     borderRadius: 3,
     overflow: 'hidden',
-    backgroundColor: '#FFF0EC',
+    backgroundColor: colors.peach,
     paddingHorizontal: 4,
     paddingVertical: 2,
   },
   productMetrics: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  productMetricText: { color: '#777777', fontSize: 10 },
-  reviewCount: { color: '#999999', fontSize: 9 },
+  productMetricText: { color: colors.muted, fontSize: 10 },
+  reviewCount: { color: colors.muted, fontSize: 9 },
   loader: { marginTop: 44 },
   empty: { paddingHorizontal: 20, paddingTop: 22 },
   stickyTabsOverlay: {
